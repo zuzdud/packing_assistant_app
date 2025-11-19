@@ -9,11 +9,13 @@ import {
     KeyboardAvoidingView,
     Platform,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 export default function LoginScreen() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const router = useRouter();
 
     const handleLogin = () => {
         if (!username || !password) {
@@ -27,10 +29,6 @@ export default function LoginScreen() {
             Alert.alert('Success', 'Login button works — no backend connected.');
             setIsLoading(false);
         }, 1000);
-    };
-
-    const handleRegisterPress = () => {
-        Alert.alert('Navigation Placeholder', 'This would go to Register Screen.');
     };
 
     return (
@@ -73,7 +71,7 @@ export default function LoginScreen() {
 
                     <TouchableOpacity
                         style={styles.linkButton}
-                        onPress={handleRegisterPress}
+                        onPress={() => router.push('/register')}
                     >
                         <Text style={styles.linkText}>
                             Don't have an account? Sign up
