@@ -11,6 +11,7 @@ import {
     ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function RegisterScreen() {
     const [formData, setFormData] = useState({
@@ -23,8 +24,9 @@ export default function RegisterScreen() {
     });
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const { register } = useAuth();
 
-    const handleRegister = () => {
+    const handleRegister = async () => {
         if (!formData.username || !formData.email || !formData.password) {
             Alert.alert('Error', 'Please fill in required fields');
             return;
@@ -41,10 +43,16 @@ export default function RegisterScreen() {
         }
 
         setIsLoading(true);
-        setTimeout(() => {
-            Alert.alert('Success', 'Account created (placeholder — no backend).');
+        try {
+            await register(formData);
+        } catch (error: any) {
+            const errorMsg = error.response?.data?.username?.[0] ||
+                error.response?.data?.email?.[0] ||
+                'Registration failed. Please try again.';
+            Alert.alert('Registration Failed', errorMsg);
+        } finally {
             setIsLoading(false);
-        }, 1000);
+        }
     };
 
     return (
