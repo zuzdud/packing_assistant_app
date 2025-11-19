@@ -47,10 +47,6 @@ export default function RegisterScreen() {
         }, 1000);
     };
 
-    const handleBackPress = () => {
-        Alert.alert('Navigation Placeholder', 'Back to login screen.');
-    };
-
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

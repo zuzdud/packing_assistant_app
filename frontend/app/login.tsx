@@ -10,14 +10,16 @@ import {
     Platform,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginScreen() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const { login } = useAuth();
     const router = useRouter();
 
-    const handleLogin = () => {
+    const handleLogin = async () => {
         if (!username || !password) {
             Alert.alert('Error', 'Please fill in all fields');
             return;
@@ -25,10 +27,16 @@ export default function LoginScreen() {
 
         setIsLoading(true);
 
-        setTimeout(() => {
-            Alert.alert('Success', 'Login button works — no backend connected.');
+        try {
+            await login({ username, password });
+        } catch (error: any) {
+            Alert.alert(
+                'Login Failed',
+                error.response?.data?.detail || 'Invalid credentials'
+            );
+        } finally {
             setIsLoading(false);
-        }, 1000);
+        }
     };
 
     return (
