@@ -1,5 +1,6 @@
 import gearService, { GearItem } from "@/services/gear.service";
-import { Package } from "lucide-react-native";
+import { useRouter } from "expo-router";
+import { Package, Plus } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import { FlatList, TouchableOpacity, View, StyleSheet, Alert, Image, Text, RefreshControl, ActivityIndicator } from "react-native";
 
@@ -8,6 +9,7 @@ export default function GearListScreen() {
     const [gear, setGear] = useState<GearItem[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const router = useRouter();
 
     useEffect(() => {
         loadData();
@@ -87,6 +89,13 @@ export default function GearListScreen() {
                     </View>
                 }
             />
+            {/* Add Button */}
+            <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => router.push('/gear/add')}
+            >
+                <Plus size={28} color="white" />
+            </TouchableOpacity>
         </View>
     )
 }
@@ -166,5 +175,21 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    addButton: {
+        position: 'absolute',
+        right: 20,
+        bottom: 20,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#2d5016',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
     },
 });
