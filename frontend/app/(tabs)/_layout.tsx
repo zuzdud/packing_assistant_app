@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Package } from 'lucide-react-native';
+import { Calendar, Package } from 'lucide-react-native';
 
 export default function TabLayout() {
     return (
@@ -27,6 +27,14 @@ export default function TabLayout() {
                         <Package size={size} color={color} />
                     ),
                 }} />
+            <Tabs.Screen name="trips"
+                options={{
+                    title: 'My Trips',
+                    tabBarIcon: ({ color, size }) => (
+                        <Calendar size={size} color={color} />
+                    ),
+                }}
+            />
         </Tabs>
     )
 }
