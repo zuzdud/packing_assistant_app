@@ -32,6 +32,12 @@ export interface CreateGearData {
 }
 
 class GearService {
+
+  async getCatalogItems(): Promise<GearItem[]> {
+    const response = await api.get('/catalog/');
+    return response.data.results || response.data;
+  }
+
   async getGearItemsByCategory(categoryId: number): Promise<GearItem[]> {
     const response = await api.get(`/gear/by_category/?category_id=${categoryId}`);
     console.log("GEAR by category RESPONSE:", response.data);
@@ -105,6 +111,7 @@ class GearService {
     }
 
     const response = await api.post('/gear/', data);
+    console.log("add trip RESPONSE:", response.data);
     return response.data;
   }
 }

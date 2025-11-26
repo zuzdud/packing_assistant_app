@@ -20,6 +20,7 @@ import {
     CheckCircle,
     Circle,
     Plus,
+    Lightbulb,
 } from 'lucide-react-native';
 import tripService, { Trip, TripGear } from '../../../services/trip.service';
 
@@ -204,6 +205,17 @@ export default function TripDetailScreen() {
                     </View>
                 )}
             </View>
+
+            {/* Recommendations Button */}
+            <TouchableOpacity
+                style={styles.recommendationsButton}
+                onPress={() => router.push({ pathname: `/trips/[id]/recommendations`, params: { id: id.toString() } })}
+            >
+                <Lightbulb size={20} color="#2d5016" />
+                <Text style={styles.recommendationsButtonText}>
+                    Get Packing Recommendations
+                </Text>
+            </TouchableOpacity>
 
             {/* Packing Stats */}
             <View style={styles.section}>
@@ -468,5 +480,20 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
+    },
+    recommendationsButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#fef3c7',
+        padding: 16,
+        borderRadius: 12,
+        marginBottom: 16,
+        gap: 8,
+    },
+    recommendationsButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#2d5016',
     },
 });
