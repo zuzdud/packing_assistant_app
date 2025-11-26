@@ -34,8 +34,15 @@ export interface CreateGearData {
 class GearService {
 
   async getCatalogItems(): Promise<GearItem[]> {
-    const response = await api.get('/catalog/');
-    return response.data.results || response.data;
+    let url = '/catalog/';
+    let allGear: GearItem[] = [];
+
+    while (url) {
+      const response = await api.get(url);
+      allGear = [...allGear, ...response.data.results];
+      url = response.data.next;
+    }
+    return allGear;
   }
 
   async getGearItemsByCategory(categoryId: number): Promise<GearItem[]> {

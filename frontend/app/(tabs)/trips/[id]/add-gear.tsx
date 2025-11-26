@@ -21,6 +21,7 @@ export default function AddGearToTripScreen() {
     const [filteredGear, setFilteredGear] = useState<GearItem[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedGear, setSelectedGear] = useState<Set<number>>(new Set());
+    const [gearQuantities, setGearQuantities] = useState<Map<number, number>>(new Map());
     const [existingGearIds, setExistingGearIds] = useState<Set<number>>(new Set());
     const [isLoading, setIsLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
@@ -71,12 +72,26 @@ export default function AddGearToTripScreen() {
 
     const toggleGear = (gearId: number) => {
         const newSelected = new Set(selectedGear);
+        const newQuantities = new Map(gearQuantities);
+
         if (newSelected.has(gearId)) {
             newSelected.delete(gearId);
+            newQuantities.delete(gearId);
         } else {
             newSelected.add(gearId);
+            newQuantities.set(gearId, 1); // Default quantity is 1
         }
+
         setSelectedGear(newSelected);
+        setGearQuantities(newQuantities);
+    };
+
+    const updateQuantity = (gearId: number, change: number) => {
+        const newQuantities = new Map(gearQuantities);
+        const current = newQuantities.get(gearId) || 1;
+        const newValue = Math.max(1, current + change);
+        newQuantities.set(gearId, newValue);
+        setGearQuantities(newQuantities);
     };
 
     const handleAddGear = async () => {
@@ -107,6 +122,7 @@ export default function AddGearToTripScreen() {
     const renderGearItem = ({ item }: { item: GearItem }) => {
         const isAlreadyInTrip = existingGearIds.has(item.id);
         const isSelected = selectedGear.has(item.id);
+        const quantity = gearQuantities.get(item.id) || 1;
 
         return (
             <TouchableOpacity
@@ -137,12 +153,20 @@ export default function AddGearToTripScreen() {
                 </View>
 
                 {isAlreadyInTrip ? (
-                    <View style={styles.alreadyAddedBadge}>
-                        <Text style={styles.alreadyAddedText}>Added</Text>
-                    </View>
-                ) : isSelected ? (
-                    <View style={styles.checkbox}>
-                        <Check size={20} color="white" />
+                    <View style={styles.quantityControls}>
+                        <TouchableOpacity
+                            style={styles.quantityButton}
+                            onPress={() => updateQuantity(item.id, -1)}
+                        >
+                            <Text style={styles.quantityButtonText}>−</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.quantityText}>{quantity}</Text>
+                        <TouchableOpacity
+                            style={styles.quantityButton}
+                            onPress={() => updateQuantity(item.id, 1)}
+                        >
+                            <Text style={styles.quantityButtonText}>+</Text>
+                        </TouchableOpacity>
                     </View>
                 ) : (
                     <View style={styles.checkboxEmpty} />
@@ -383,5 +407,31 @@ const styles = StyleSheet.create({
         color: 'white',
         fontSize: 16,
         fontWeight: '600',
+    },
+    quantityControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#2d5016',
+        borderRadius: 20,
+        paddingHorizontal: 4,
+    },
+    quantityButton: {
+        width: 32,
+        height: 32,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    quantityButtonText: {
+        color: 'white',
+        fontSize: 20,
+        fontWeight: '600',
+    },
+    quantityText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '600',
+        paddingHorizontal: 12,
+        minWidth: 30,
+        textAlign: 'center',
     },
 });
