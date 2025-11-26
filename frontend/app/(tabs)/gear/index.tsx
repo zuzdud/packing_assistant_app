@@ -15,10 +15,6 @@ export default function GearListScreen() {
         loadData();
     }, []);
 
-    const handleOnPress = () => {
-        Alert.alert('Navigation Placeholder', 'Back to login screen.');
-    };
-
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         await loadData();
@@ -42,7 +38,7 @@ export default function GearListScreen() {
     const renderGearItem = ({ item }: { item: GearItem }) => (
         <TouchableOpacity
             style={styles.gearCard}
-            onPress={handleOnPress}
+            onPress={() => router.push(`/gear/${item.id}`)}
         >
             {item.photo ? (
                 <Image source={{ uri: item.photo }} style={styles.gearImage} />

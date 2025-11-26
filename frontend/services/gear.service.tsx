@@ -32,6 +32,20 @@ export interface CreateGearData {
 }
 
 class GearService {
+  async deleteGearItem(id: number): Promise<void> {
+    await api.delete(`/gear/${id}/`);
+  }
+
+  async getGearUsageStats(id: number) {
+    const response = await api.get(`/gear/${id}/usage_stats/`);
+    return response.data;
+  }
+
+  async getGearItem(id: number): Promise<GearItem> {
+    const response = await api.get(`/gear/${id}/`);
+    return response.data;
+  }
+
   async getGearItems(): Promise<GearItem[]> {
     const response = await api.get('/gear/');
     return response.data.results || response.data;
