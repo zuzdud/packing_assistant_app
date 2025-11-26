@@ -251,7 +251,9 @@ export default function TripDetailScreen() {
 
                 <TouchableOpacity
                     style={styles.editButton}
-                    onPress={handleNavigation}
+                    onPress={() => router.push({
+                        pathname: `/trips/edit/[id]`, params: { id: id.toString() }
+                    })}
                 >
                     <Edit size={20} color="white" />
                     <Text style={styles.buttonText}>Edit</Text>
