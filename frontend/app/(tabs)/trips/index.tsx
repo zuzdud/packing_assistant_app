@@ -1,6 +1,6 @@
 import tripService, { Trip } from "@/services/trip.service";
 import { useRouter } from "expo-router";
-import { Calendar, MapPin, Package } from "lucide-react-native";
+import { Calendar, MapPin, Package, Plus } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
 import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Text, RefreshControl } from "react-native";
 
@@ -8,6 +8,7 @@ export default function TripListScreen() {
     const [trips, setTrips] = useState<Trip[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const router = useRouter();
 
     const handleOnPress = () => {
         Alert.alert('Navigation Placeholder', 'Back to login screen.');
@@ -132,6 +133,13 @@ export default function TripListScreen() {
                     </View>
                 }
             />
+            {/* Add Button */}
+            <TouchableOpacity
+                style={styles.addButton}
+                onPress={() => router.push('/trips/add')}
+            >
+                <Plus size={28} color="white" />
+            </TouchableOpacity>
         </View>
     );
 }
@@ -228,6 +236,22 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: '#999',
         marginTop: 8,
+    },
+    addButton: {
+        position: 'absolute',
+        right: 20,
+        bottom: 20,
+        width: 60,
+        height: 60,
+        borderRadius: 30,
+        backgroundColor: '#2d5016',
+        justifyContent: 'center',
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 8,
     },
 
 });
