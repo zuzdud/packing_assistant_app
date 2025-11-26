@@ -9,6 +9,7 @@ import {
     Image,
     Alert,
     ActivityIndicator,
+    Pressable,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -28,6 +29,7 @@ export default function AddGearScreen() {
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const router = useRouter();
+    const [showPhotoOptions, setShowPhotoOptions] = useState(false);
 
     useEffect(() => {
         loadCategories();
@@ -83,11 +85,7 @@ export default function AddGearScreen() {
     };
 
     const handleImagePick = () => {
-        Alert.alert('Add Photo', 'Choose an option', [
-            { text: 'Take Photo', onPress: takePhoto },
-            { text: 'Choose from Library', onPress: pickImage },
-            { text: 'Cancel', style: 'cancel' },
-        ]);
+        setShowPhotoOptions(true);
     };
 
     const handleSubmit = async () => {
@@ -141,158 +139,191 @@ export default function AddGearScreen() {
     };
 
     return (
-        <ScrollView style={styles.container}>
-            <View style={styles.content}>
-                <Text style={styles.title}>Add Gear Item</Text>
+        <View style={{ flex: 1 }}>
+            <ScrollView style={styles.container}>
+                <View style={styles.content}>
+                    <Text style={styles.title}>Add Gear Item</Text>
 
-                {/* Photo Section */}
-                <TouchableOpacity style={styles.photoContainer} onPress={handleImagePick}>
-                    {photo ? (
-                        <>
-                            <Image source={{ uri: photo }} style={styles.photo} />
-                            <TouchableOpacity
-                                style={styles.removePhoto}
-                                onPress={() => setPhoto(null)}
-                            >
-                                <X size={20} color="white" />
-                            </TouchableOpacity>
-                        </>
-                    ) : (
-                        <View style={styles.photoPlaceholder}>
-                            <Camera size={40} color="#999" />
-                            <Text style={styles.photoPlaceholderText}>Add Photo</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-
-                {/* Form Fields */}
-                <View style={styles.form}>
-                    <Text style={styles.label}>Name *</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={formData.name}
-                        onChangeText={(text) => setFormData({ ...formData, name: text })}
-                        placeholder="e.g., Osprey Atmos 65L"
-                    />
-
-                    <Text style={styles.label}>Category</Text>
-                    <View style={styles.pickerContainer}>
-                        <ScrollView
-                            horizontal
-                            showsHorizontalScrollIndicator={false}
-                            style={styles.categoryScroll}
-                        >
-                            <TouchableOpacity
-                                style={[
-                                    styles.categoryOption,
-                                    !formData.category && styles.categoryOptionActive,
-                                ]}
-                                onPress={() => setFormData({ ...formData, category: '' })}
-                            >
-                                <Text
-                                    style={[
-                                        styles.categoryOptionText,
-                                        !formData.category && styles.categoryOptionTextActive,
-                                    ]}
-                                >
-                                    None
-                                </Text>
-                            </TouchableOpacity>
-                            {categories.map((cat) => (
+                    {/* photo section */}
+                    <TouchableOpacity style={styles.photoContainer} onPress={handleImagePick}>
+                        {photo ? (
+                            <>
+                                <Image source={{ uri: photo }} style={styles.photo} />
                                 <TouchableOpacity
-                                    key={cat.id}
+                                    style={styles.removePhoto}
+                                    onPress={() => setPhoto(null)}
+                                >
+                                    <X size={20} color="white" />
+                                </TouchableOpacity>
+                            </>
+                        ) : (
+                            <View style={styles.photoPlaceholder}>
+                                <Camera size={40} color="#999" />
+                                <Text style={styles.photoPlaceholderText}>Add Photo</Text>
+                            </View>
+                        )}
+                    </TouchableOpacity>
+
+                    {/* Form Fields */}
+                    {/* TODO keyboard not obscuring text fields */}
+                    <View style={styles.form}>
+                        <Text style={styles.label}>Name *</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={formData.name}
+                            onChangeText={(text) => setFormData({ ...formData, name: text })}
+                            placeholder="e.g., Osprey Atmos 65L"
+                        />
+
+                        <Text style={styles.label}>Category</Text>
+                        <View style={styles.pickerContainer}>
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                style={styles.categoryScroll}
+                            >
+                                <TouchableOpacity
                                     style={[
                                         styles.categoryOption,
-                                        formData.category === cat.id.toString() &&
-                                        styles.categoryOptionActive,
+                                        !formData.category && styles.categoryOptionActive,
                                     ]}
-                                    onPress={() =>
-                                        setFormData({ ...formData, category: cat.id.toString() })
-                                    }
+                                    onPress={() => setFormData({ ...formData, category: '' })}
                                 >
                                     <Text
                                         style={[
                                             styles.categoryOptionText,
-                                            formData.category === cat.id.toString() &&
-                                            styles.categoryOptionTextActive,
+                                            !formData.category && styles.categoryOptionTextActive,
                                         ]}
                                     >
-                                        {cat.name}
+                                        None
                                     </Text>
                                 </TouchableOpacity>
-                            ))}
-                        </ScrollView>
+                                {categories.map((cat) => (
+                                    <TouchableOpacity
+                                        key={cat.id}
+                                        style={[
+                                            styles.categoryOption,
+                                            formData.category === cat.id.toString() &&
+                                            styles.categoryOptionActive,
+                                        ]}
+                                        onPress={() =>
+                                            setFormData({ ...formData, category: cat.id.toString() })
+                                        }
+                                    >
+                                        <Text
+                                            style={[
+                                                styles.categoryOptionText,
+                                                formData.category === cat.id.toString() &&
+                                                styles.categoryOptionTextActive,
+                                            ]}
+                                        >
+                                            {cat.name}
+                                        </Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </ScrollView>
+                        </View>
+
+                        <Text style={styles.label}>Weight (grams)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={formData.weight_grams}
+                            onChangeText={(text) =>
+                                setFormData({ ...formData, weight_grams: text })
+                            }
+                            placeholder="e.g., 1500"
+                            keyboardType="numeric"
+                        />
+
+                        {/* TODO calendar for date picker */}
+                        <Text style={styles.label}>Purchase Date (YYYY-MM-DD)</Text>
+                        <TextInput
+                            style={styles.input}
+                            value={formData.purchase_date}
+                            onChangeText={(text) =>
+                                setFormData({ ...formData, purchase_date: text })
+                            }
+                            placeholder="e.g., 2024-01-15"
+                        />
+
+                        <Text style={styles.label}>Description</Text>
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            value={formData.description}
+                            onChangeText={(text) =>
+                                setFormData({ ...formData, description: text })
+                            }
+                            placeholder="Brief description..."
+                            multiline
+                            numberOfLines={3}
+                        />
+
+                        <Text style={styles.label}>Notes</Text>
+                        <TextInput
+                            style={[styles.input, styles.textArea]}
+                            value={formData.notes}
+                            onChangeText={(text) => setFormData({ ...formData, notes: text })}
+                            placeholder="Additional notes..."
+                            multiline
+                            numberOfLines={3}
+                        />
                     </View>
 
-                    <Text style={styles.label}>Weight (grams)</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={formData.weight_grams}
-                        onChangeText={(text) =>
-                            setFormData({ ...formData, weight_grams: text })
-                        }
-                        placeholder="e.g., 1500"
-                        keyboardType="numeric"
-                    />
+                    {/* Action Buttons */}
+                    <View style={styles.actions}>
+                        <TouchableOpacity
+                            style={styles.cancelButton}
+                            onPress={() => router.back()}
+                        >
+                            <Text style={styles.cancelButtonText}>Cancel</Text>
+                        </TouchableOpacity>
 
-                    {/* TODO calendar for date picker */}
-                    <Text style={styles.label}>Purchase Date (YYYY-MM-DD)</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={formData.purchase_date}
-                        onChangeText={(text) =>
-                            setFormData({ ...formData, purchase_date: text })
-                        }
-                        placeholder="e.g., 2024-01-15"
-                    />
-
-                    <Text style={styles.label}>Description</Text>
-                    <TextInput
-                        style={[styles.input, styles.textArea]}
-                        value={formData.description}
-                        onChangeText={(text) =>
-                            setFormData({ ...formData, description: text })
-                        }
-                        placeholder="Brief description..."
-                        multiline
-                        numberOfLines={3}
-                    />
-
-                    <Text style={styles.label}>Notes</Text>
-                    <TextInput
-                        style={[styles.input, styles.textArea]}
-                        value={formData.notes}
-                        onChangeText={(text) => setFormData({ ...formData, notes: text })}
-                        placeholder="Additional notes..."
-                        multiline
-                        numberOfLines={3}
-                    />
+                        <TouchableOpacity
+                            style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+                            onPress={handleSubmit}
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <ActivityIndicator color="white" />
+                            ) : (
+                                <Text style={styles.submitButtonText}>Add Gear</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
                 </View>
+            </ScrollView>
 
-                {/* Action Buttons */}
-                <View style={styles.actions}>
-                    {/* TODO go back navigation */}
-                    <TouchableOpacity
-                        style={styles.cancelButton}
-                        onPress={() => router.back()}
-                    >
-                        <Text style={styles.cancelButtonText}>Cancel</Text>
-                    </TouchableOpacity>
+            {showPhotoOptions && (
+                <Pressable style={styles.modalOverlay} onPress={() => setShowPhotoOptions(false)}>
+                    <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
+                        <TouchableOpacity
+                            style={styles.modalButton}
+                            onPress={() => {
+                                setShowPhotoOptions(false);
+                                takePhoto();
+                            }}
+                        >
+                            <Text style={styles.modalText}>Take Photo</Text>
+                        </TouchableOpacity>
 
-                    <TouchableOpacity
-                        style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
-                        onPress={handleSubmit}
-                        disabled={isLoading}
-                    >
-                        {isLoading ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <Text style={styles.submitButtonText}>Add Gear</Text>
-                        )}
-                    </TouchableOpacity>
-                </View>
-            </View>
-        </ScrollView>
+                        <TouchableOpacity style={styles.modalButton} onPress={() => {
+                            setShowPhotoOptions(false);
+                            pickImage();
+                        }}>
+                            <Text style={styles.modalText}>Choose from Library</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.modalButton]}
+                            onPress={() => setShowPhotoOptions(false)}
+                        >
+                            <Text style={styles.modalText}>Cancel</Text>
+                        </TouchableOpacity>
+                    </Pressable>
+                </Pressable>
+            )
+            }
+        </View>
     );
 }
 
@@ -422,4 +453,28 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: 'white',
     },
+    modalOverlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.4)',
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+    },
+    modalCard: {
+        width: '100%',
+        backgroundColor: 'white',
+        padding: 20,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+    },
+    modalButton: {
+        paddingVertical: 14,
+    },
+    modalText: {
+        fontSize: 18,
+        textAlign: 'center',
+    }
 });
