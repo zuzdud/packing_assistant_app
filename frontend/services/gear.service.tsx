@@ -32,6 +32,24 @@ export interface CreateGearData {
 }
 
 class GearService {
+  async updateGearItem(id: number, data: Partial<CreateGearData>): Promise<GearItem> {
+    if (data.photo) {
+      const formData = new FormData();
+      (Object.keys(data) as (keyof CreateGearData)[]).forEach(key => {
+        if (data[key] !== undefined && data[key] !== null) {
+          formData.append(key, data[key]);
+        }
+      });
+      const response = await api.patch(`/gear/${id}/`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      return response.data;
+    }
+
+    const response = await api.patch(`/gear/${id}/`, data);
+    return response.data;
+  }
+
   async deleteGearItem(id: number): Promise<void> {
     await api.delete(`/gear/${id}/`);
   }
