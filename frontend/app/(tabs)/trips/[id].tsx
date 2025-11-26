@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     Alert,
     Image,
+    RefreshControl,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
@@ -146,7 +147,7 @@ export default function TripDetailScreen() {
         .reduce((sum, item) => sum + (item.gear_weight || 0), 0);
 
     return (
-        <ScrollView style={styles.container}>
+        <ScrollView style={styles.container} refreshControl={<RefreshControl refreshing={isLoading} onRefresh={loadTripDetail} />}>
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>{trip.title}</Text>
@@ -227,7 +228,7 @@ export default function TripDetailScreen() {
                     <Text style={styles.sectionTitle}>Gear List</Text>
                     <TouchableOpacity
                         style={styles.addGearButton}
-                        onPress={handleNavigation}
+                        onPress={() => router.push({ pathname: `/trips/[id]/add-gear`, params: { id: id.toString() } })}
                     >
                         <Plus size={20} color="#2d5016" />
                     </TouchableOpacity>

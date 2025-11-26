@@ -56,6 +56,14 @@ export interface CreateTripData {
 }
 
 class TripService {
+    async addGearToTrip(tripId: number, gearId: number, quantity: number = 1): Promise<TripGear> {
+        const response = await api.post(`/trips/${tripId}/add_gear/`, {
+            gear_id: gearId,
+            quantity,
+        });
+        return response.data;
+    }
+
     async updateTrip(id: number, data: Partial<CreateTripData>): Promise<Trip> {
         const response = await api.patch(`/trips/${id}/`, data);
         return response.data;

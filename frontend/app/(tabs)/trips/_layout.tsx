@@ -7,6 +7,7 @@ export default function RootLayout() {
             <Stack.Screen name="add" />
             <Stack.Screen name="[id]" />
             <Stack.Screen name="edit/[id]" />
+            <Stack.Screen name="[id]/add-gear" />
         </Stack>
     );
 }
