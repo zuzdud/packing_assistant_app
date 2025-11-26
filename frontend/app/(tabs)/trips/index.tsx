@@ -2,27 +2,29 @@ import tripService, { Trip } from "@/services/trip.service";
 import { useRouter } from "expo-router";
 import { Calendar, MapPin, Package, Plus } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
-import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Text, RefreshControl } from "react-native";
+import { View, StyleSheet, FlatList, TouchableOpacity, Alert, Text, RefreshControl, ActivityIndicator } from "react-native";
 
 export default function TripListScreen() {
     const [trips, setTrips] = useState<Trip[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [filter, setFilter] = useState<'all' | 'planned' | 'in_progress' | 'completed'>('all');
     const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
 
-
     useEffect(() => {
         loadTrips();
-    }, []);
+    }, [filter]);
+
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
         await loadTrips();
         setRefreshing(false);
-    }, []);
+    }, [filter]);
 
     const loadTrips = async () => {
         try {
-            const data = await tripService.getTrips();
+            const statusFilter = filter === 'all' ? undefined : filter;
+            const data = await tripService.getTrips(statusFilter);
             setTrips(data);
         } catch (error) {
             Alert.alert('Error', 'Failed to load trips');
@@ -107,9 +109,36 @@ export default function TripListScreen() {
         </TouchableOpacity>
     );
 
+    const FilterButton = ({ value, label }: { value: typeof filter; label: string }) => (
+        <TouchableOpacity
+            style={[styles.filterButton, filter === value && styles.filterButtonActive]}
+            onPress={() => setFilter(value)}
+        >
+            <Text style={[styles.filterText, filter === value && styles.filterTextActive]}>
+                {label}
+            </Text>
+        </TouchableOpacity>
+    );
+
+    if (isLoading && !refreshing) {
+        return (
+            <View style={styles.centerContainer}>
+                <ActivityIndicator size="large" color="#2d5016" />
+            </View>
+        );
+    }
+
 
     return (
         <View style={styles.container}>
+            {/* Filter Tabs */}
+            <View style={styles.filterContainer}>
+                <FilterButton value="all" label="All" />
+                <FilterButton value="planned" label="Planned" />
+                <FilterButton value="in_progress" label="Active" />
+                <FilterButton value="completed" label="Completed" />
+            </View>
+
             {/* Trip List */}
             <FlatList
                 data={trips}
@@ -249,5 +278,35 @@ const styles = StyleSheet.create({
         shadowRadius: 6,
         elevation: 8,
     },
-
+    centerContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    filterContainer: {
+        flexDirection: 'row',
+        backgroundColor: 'white',
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    filterButton: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: 'center',
+        borderRadius: 8,
+        marginHorizontal: 4,
+    },
+    filterButtonActive: {
+        backgroundColor: '#2d5016',
+    },
+    filterText: {
+        fontSize: 14,
+        color: '#666',
+    },
+    filterTextActive: {
+        color: 'white',
+        fontWeight: '600',
+    }
 });
