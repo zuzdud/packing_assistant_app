@@ -10,9 +10,6 @@ export default function TripListScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const router = useRouter();
 
-    const handleOnPress = () => {
-        Alert.alert('Navigation Placeholder', 'Back to login screen.');
-    };
 
     useEffect(() => {
         loadTrips();
@@ -25,7 +22,6 @@ export default function TripListScreen() {
 
     const loadTrips = async () => {
         try {
-            // const statusFilter = filter === 'all' ? undefined : filter;
             const data = await tripService.getTrips();
             setTrips(data);
         } catch (error) {
@@ -65,7 +61,7 @@ export default function TripListScreen() {
     const renderTripItem = ({ item }: { item: Trip }) => (
         <TouchableOpacity
             style={styles.tripCard}
-            onPress={handleOnPress}
+            onPress={() => router.push({ pathname: `/trips/[id]`, params: { id: item.id.toString() }, })}
         >
             <View style={styles.tripHeader}>
                 <Text style={styles.tripTitle}>{item.title}</Text>

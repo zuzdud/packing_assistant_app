@@ -56,6 +56,36 @@ export interface CreateTripData {
 }
 
 class TripService {
+    async completeTrip(tripId: number): Promise<Trip> {
+        const response = await api.post(`/trips/${tripId}/complete_trip/`);
+        return response.data;
+    }
+
+    async deleteTrip(id: number): Promise<void> {
+        await api.delete(`/trips/${id}/`);
+    }
+
+    async updateGearStatus(
+        tripId: number,
+        gearId: number,
+        updates: {
+            packed?: boolean;
+            used?: boolean;
+            usefulness_rating?: number;
+            notes?: string;
+        }
+    ): Promise<TripGear> {
+        const response = await api.patch(`/trips/${tripId}/update_gear_status/`, {
+            gear_id: gearId,
+            ...updates,
+        });
+        return response.data;
+    }
+
+    async getTrip(id: number): Promise<Trip> {
+        const response = await api.get(`/trips/${id}/`);
+        return response.data;
+    }
 
     async getActivities(): Promise<ActivityType[]> {
         let url = '/activities/';
