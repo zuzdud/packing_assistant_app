@@ -1,4 +1,4 @@
-import gearService, { GearItem } from "@/services/gear.service";
+import gearService, { Category, GearItem } from "@/services/gear.service";
 import { useRouter } from "expo-router";
 import { Package, Plus } from "lucide-react-native";
 import { useCallback, useEffect, useState } from "react";
@@ -9,6 +9,9 @@ export default function GearListScreen() {
     const [gear, setGear] = useState<GearItem[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+    const [gearLoading, setGearLoading] = useState(false);
     const router = useRouter();
 
     useEffect(() => {
@@ -17,21 +20,49 @@ export default function GearListScreen() {
 
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
-        await loadData();
-        setRefreshing(false);
-    }, []);
+        try {
+            if (selectedCategory === null) {
+                await loadData();        // reload everything
+            } else {
+                await filterByCategory(selectedCategory);  // reload filtered gear
+            }
+        } finally {
+            setRefreshing(false);
+        }
+    }, [selectedCategory]);
 
     const loadData = async () => {
         try {
-            const [gearData,] = await Promise.all([
+            const [gearData, categoriesData] = await Promise.all([
                 gearService.getGearItems(),
+                gearService.getCategories(),
             ]);
             setGear(gearData);
+            setCategories(categoriesData);
         } catch (error) {
             Alert.alert('Error', 'Failed to load gear items');
             console.error(error);
         } finally {
             setIsLoading(false);
+        }
+    };
+
+    const filterByCategory = async (categoryId: number | null) => {
+        setSelectedCategory(categoryId);
+        setGearLoading(true);
+
+        try {
+            if (categoryId) {
+                const filtered = await gearService.getGearItemsByCategory(categoryId);
+                setGear(filtered);
+            } else {
+                const allGear = await gearService.getGearItems();
+                setGear(allGear);
+            }
+        } catch (error) {
+            Alert.alert('Error', 'Failed to filter gear');
+        } finally {
+            setGearLoading(false);
         }
     };
 
@@ -57,6 +88,25 @@ export default function GearListScreen() {
         </TouchableOpacity>
     );
 
+    const renderCategoryFilter = ({ item }: { item: Category }) => (
+        <TouchableOpacity
+            style={[
+                styles.categoryChip,
+                selectedCategory === item.id && styles.categoryChipActive,
+            ]}
+            onPress={() => filterByCategory(item.id)}
+        >
+            <Text
+                style={[
+                    styles.categoryChipText,
+                    selectedCategory === item.id && styles.categoryChipTextActive,
+                ]}
+            >
+                {item.name}
+            </Text>
+        </TouchableOpacity>
+    );
+
     if (isLoading && !refreshing) {
         return (
             <View style={styles.centerContainer}>
@@ -67,6 +117,36 @@ export default function GearListScreen() {
 
     return (
         <View style={styles.container}>
+            {/* Category Filter */}
+            <View style={styles.filterSection}>
+                <FlatList
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    data={categories}
+                    keyExtractor={(item) => item.id.toString()}
+                    renderItem={renderCategoryFilter}
+                    ListHeaderComponent={
+                        <TouchableOpacity
+                            style={[
+                                styles.categoryChip,
+                                selectedCategory === null && styles.categoryChipActive,
+                            ]}
+                            onPress={() => filterByCategory(null)}
+                        >
+                            <Text
+                                style={[
+                                    styles.categoryChipText,
+                                    selectedCategory === null && styles.categoryChipTextActive,
+                                ]}
+                            >
+                                All
+                            </Text>
+                        </TouchableOpacity>
+                    }
+                    contentContainerStyle={styles.filterList}
+                />
+            </View>
+
             <FlatList
                 data={gear}
                 keyExtractor={(item) => item.id.toString()}
@@ -187,5 +267,32 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.3,
         shadowRadius: 6,
         elevation: 8,
+    },
+    filterSection: {
+        backgroundColor: 'white',
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e0e0e0',
+    },
+    filterList: {
+        paddingHorizontal: 16,
+    },
+    categoryChip: {
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderRadius: 20,
+        backgroundColor: '#f0f0f0',
+        marginRight: 8,
+    },
+    categoryChipActive: {
+        backgroundColor: '#2d5016',
+    },
+    categoryChipText: {
+        fontSize: 14,
+        color: '#666',
+    },
+    categoryChipTextActive: {
+        color: 'white',
+        fontWeight: '600',
     },
 });

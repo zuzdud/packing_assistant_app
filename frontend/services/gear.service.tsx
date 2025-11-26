@@ -32,6 +32,12 @@ export interface CreateGearData {
 }
 
 class GearService {
+  async getGearItemsByCategory(categoryId: number): Promise<GearItem[]> {
+    const response = await api.get(`/gear/by_category/?category_id=${categoryId}`);
+    console.log("GEAR by category RESPONSE:", response.data);
+    return response.data;
+  }
+
   async updateGearItem(id: number, data: Partial<CreateGearData>): Promise<GearItem> {
     if (data.photo) {
       const formData = new FormData();
