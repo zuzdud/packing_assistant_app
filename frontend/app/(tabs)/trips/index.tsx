@@ -135,7 +135,7 @@ export default function TripListScreen() {
             <View style={styles.filterContainer}>
                 <FilterButton value="all" label="All" />
                 <FilterButton value="planned" label="Planned" />
-                <FilterButton value="in_progress" label="Active" />
+                <FilterButton value="in_progress" label="In Progress" />
                 <FilterButton value="completed" label="Completed" />
             </View>
 
