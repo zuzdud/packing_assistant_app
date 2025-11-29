@@ -46,8 +46,7 @@ export default function TripDetailScreen() {
         try {
             const data = await tripService.getTrip(Number(id));
             setTrip(data);
-            // Show used column if trip is completed
-            setShowUsedColumn(data.status === 'completed');
+            setShowUsedColumn(data.status === 'in_progress');
         } catch (error) {
             Alert.alert('Error', 'Failed to load trip details');
             router.back();
@@ -103,18 +102,39 @@ export default function TripDetailScreen() {
     const changeStatus = async (newStatus: 'planned' | 'in_progress' | 'completed') => {
         if (!trip) return;
 
-        // If marking as completed, show used column
-        if (newStatus === 'completed') {
+        if (newStatus === 'in_progress') {
             setShowUsedColumn(true);
             Alert.alert(
-                'Complete Trip',
-                'Mark items as used to improve future recommendations. You can update this later.',
+                'Mark in progress',
+                'You will now be able to mark items as used. After completing trip, usage stats will be updated to improve future recommendations.',
                 [
                     {
                         text: 'OK',
                         onPress: async () => {
                             try {
                                 await tripService.updateTrip(Number(id), { status: newStatus } as any);
+                                loadTripDetail();
+                            } catch (error) {
+                                Alert.alert('Error', 'Failed to update trip status');
+                            }
+                        },
+                    },
+                    { text: 'Cancel', style: 'cancel' },
+                ]
+            );
+            return;
+        }
+
+        if (newStatus === 'completed') {
+            setShowUsedColumn(true);
+            Alert.alert(
+                'Complete trip',
+                'Your usage stats will be updated to improve future recommendations.',
+                [
+                    {
+                        text: 'OK',
+                        onPress: async () => {
+                            try {
                                 await tripService.completeTrip(Number(id));
                                 loadTripDetail();
                             } catch (error) {
