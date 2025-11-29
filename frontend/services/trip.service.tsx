@@ -126,6 +126,12 @@ class TripService {
         const response = await api.post('/trips/', data);
         return response.data;
     }
+
+    async removeGearFromTrip(tripId: number, gearId: number): Promise<void> {
+        await api.delete(`/trips/${tripId}/remove_gear/`, {
+            data: { gear_id: gearId },
+        });
+    }
 }
 
 export default new TripService();

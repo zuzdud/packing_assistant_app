@@ -46,6 +46,8 @@ export default function TripDetailScreen() {
         try {
             const data = await tripService.getTrip(Number(id));
             setTrip(data);
+            // Show used column if trip is completed
+            setShowUsedColumn(data.status === 'completed');
         } catch (error) {
             Alert.alert('Error', 'Failed to load trip details');
             router.back();
@@ -97,7 +99,7 @@ export default function TripDetailScreen() {
             ]
         );
     };
-    
+
     const changeStatus = async (newStatus: 'planned' | 'in_progress' | 'completed') => {
         if (!trip) return;
 
@@ -166,12 +168,13 @@ export default function TripDetailScreen() {
     };
 
     const renderGearItem = (item: TripGear) => (
-        <TouchableOpacity
-            key={item.id}
-            style={styles.gearItem}
-            onPress={() => togglePacked(item.gear, item.packed)}
-        >
-            <View style={styles.gearItemLeft}>
+        <View key={item.id} style={styles.gearItem}>
+            <TouchableOpacity
+                key={item.id}
+                style={styles.gearItemLeft}
+                onPress={() => togglePacked(item.gear, item.packed)}
+            >
+
                 {item.packed ? (
                     <CheckCircle size={24} color="#10b981" />
                 ) : (
@@ -187,12 +190,38 @@ export default function TripDetailScreen() {
                 <View style={styles.gearInfo}>
                     <Text style={styles.gearName}>{item.gear_name}</Text>
                     <Text style={styles.gearCategory}>{item.gear_category}</Text>
+                    {item.quantity >= 1 && (
+                        <Text style={styles.quantityBadge}>Qty: {item.quantity}</Text>
+                    )}
                 </View>
+            </TouchableOpacity>
+
+            <View style={styles.gearItemRight}>
+                {item.gear_weight && (
+                    <Text style={styles.gearWeight}>{item.gear_weight}g</Text>
+                )}
+
+                {showUsedColumn && (
+                    <TouchableOpacity
+
+                        onPress={() => toggleUsed(item.gear, item.used)}
+                    >
+                        {item.used ? (
+                            <CheckCircle size={20} color="#10b981" />
+                        ) : (
+                            <Circle size={20} color="#ccc" />
+                        )}
+                    </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                    style={styles.deleteGearButton}
+                    onPress={() => handleDeleteGear(item.gear, item.gear_name)}
+                >
+                    <Trash2 size={18} color="#dc2626" />
+                </TouchableOpacity>
             </View>
-            {item.gear_weight && (
-                <Text style={styles.gearWeight}>{item.gear_weight}g</Text>
-            )}
-        </TouchableOpacity>
+        </View>
     );
 
     if (isLoading) {
