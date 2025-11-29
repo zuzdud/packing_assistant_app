@@ -53,6 +53,7 @@ export interface CreateTripData {
     expected_temp_min?: number;
     expected_temp_max?: number;
     expected_weather?: string;
+    status?: 'planned' | 'in_progress' | 'completed';
 }
 
 class TripService {

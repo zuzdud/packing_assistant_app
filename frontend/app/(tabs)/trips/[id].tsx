@@ -14,13 +14,16 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
     Calendar,
     MapPin,
-    Edit,
     Trash2,
     Package,
     CheckCircle,
     Circle,
     Plus,
     Lightbulb,
+    PauseCircle,
+    PlayCircle,
+    CheckCheck,
+    Pencil,
 } from 'lucide-react-native';
 import tripService, { Trip, TripGear } from '../../../services/trip.service';
 
@@ -28,6 +31,7 @@ export default function TripDetailScreen() {
     const { id } = useLocalSearchParams();
     const [trip, setTrip] = useState<Trip | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [showUsedColumn, setShowUsedColumn] = useState(false);
     const router = useRouter();
 
     const handleNavigation = () => {
@@ -61,6 +65,75 @@ export default function TripDetailScreen() {
         }
     };
 
+    const toggleUsed = async (gearId: number, currentStatus: boolean) => {
+        try {
+            await tripService.updateGearStatus(Number(id), gearId, {
+                used: !currentStatus,
+            });
+            loadTripDetail();
+        } catch (error) {
+            Alert.alert('Error', 'Failed to update gear status');
+        }
+    };
+
+    const handleDeleteGear = (gearId: number, gearName: string) => {
+        Alert.alert(
+            'Remove Gear',
+            `Remove "${gearName}" from this trip?`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Remove',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            await tripService.removeGearFromTrip(Number(id), gearId);
+                            loadTripDetail();
+                        } catch (error) {
+                            Alert.alert('Error', 'Failed to remove gear');
+                        }
+                    },
+                },
+            ]
+        );
+    };
+    
+    const changeStatus = async (newStatus: 'planned' | 'in_progress' | 'completed') => {
+        if (!trip) return;
+
+        // If marking as completed, show used column
+        if (newStatus === 'completed') {
+            setShowUsedColumn(true);
+            Alert.alert(
+                'Complete Trip',
+                'Mark items as used to improve future recommendations. You can update this later.',
+                [
+                    {
+                        text: 'OK',
+                        onPress: async () => {
+                            try {
+                                await tripService.updateTrip(Number(id), { status: newStatus } as any);
+                                await tripService.completeTrip(Number(id));
+                                loadTripDetail();
+                            } catch (error) {
+                                Alert.alert('Error', 'Failed to update trip status');
+                            }
+                        },
+                    },
+                    { text: 'Cancel', style: 'cancel' },
+                ]
+            );
+            return;
+        }
+
+        try {
+            await tripService.updateTrip(Number(id), { status: newStatus } as any);
+            loadTripDetail();
+        } catch (error) {
+            Alert.alert('Error', 'Failed to update trip status');
+        }
+    };
+
     const handleDelete = () => {
         Alert.alert('Delete Trip', 'Are you sure you want to delete this trip?', [
             { text: 'Cancel', style: 'cancel' },
@@ -79,26 +152,17 @@ export default function TripDetailScreen() {
         ]);
     };
 
-    const handleCompleteTrip = () => {
-        Alert.alert(
-            'Complete Trip',
-            'Mark this trip as completed? This will update your gear usage statistics.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Complete',
-                    onPress: async () => {
-                        try {
-                            await tripService.completeTrip(Number(id));
-                            loadTripDetail();
-                            Alert.alert('Success', 'Trip completed! Usage stats updated.');
-                        } catch (error) {
-                            Alert.alert('Error', 'Failed to complete trip');
-                        }
-                    },
-                },
-            ]
-        );
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'planned':
+                return <PauseCircle size={20} color="white" />;
+            case 'in_progress':
+                return <PlayCircle size={20} color="white" />;
+            case 'completed':
+                return <CheckCheck size={20} color="white" />;
+            default:
+                return null;
+        }
     };
 
     const renderGearItem = (item: TripGear) => (
@@ -152,14 +216,78 @@ export default function TripDetailScreen() {
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.title}>{trip.title}</Text>
-                <View style={styles.statusBadge}>
-                    <Text style={styles.statusText}>{trip.status.replace('_', ' ')}</Text>
+
+                {/* Status Selector */}
+                <View style={styles.statusSelector}>
+                    <TouchableOpacity
+                        style={[
+                            styles.statusOption,
+                            { backgroundColor: trip.status === 'planned' ? '#3b82f6' : '#f0f0f0' },
+                        ]}
+                        onPress={() => changeStatus('planned')}
+                    >
+                        {trip.status === 'planned' && getStatusIcon('planned')}
+                        <Text
+                            style={[
+                                styles.statusOptionText,
+                                { color: trip.status === 'planned' ? 'white' : '#666' },
+                            ]}
+                        >
+                            Planned
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.statusOption,
+                            { backgroundColor: trip.status === 'in_progress' ? '#f59e0b' : '#f0f0f0' },
+                        ]}
+                        onPress={() => changeStatus('in_progress')}
+                    >
+                        {trip.status === 'in_progress' && getStatusIcon('in_progress')}
+                        <Text
+                            style={[
+                                styles.statusOptionText,
+                                { color: trip.status === 'in_progress' ? 'white' : '#666' },
+                            ]}
+                        >
+                            In Progress
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.statusOption,
+                            { backgroundColor: trip.status === 'completed' ? '#10b981' : '#f0f0f0' },
+                        ]}
+                        onPress={() => changeStatus('completed')}
+                    >
+                        {trip.status === 'completed' && getStatusIcon('completed')}
+                        <Text
+                            style={[
+                                styles.statusOptionText,
+                                { color: trip.status === 'completed' ? 'white' : '#666' },
+                            ]}
+                        >
+                            Completed
+                        </Text>
+                    </TouchableOpacity>
                 </View>
             </View>
 
             {/* Trip Details */}
             <View style={styles.section}>
-                <Text style={styles.sectionTitle}>Trip Details</Text>
+                <View style={styles.sectionHeader}>
+                    <Text style={styles.sectionTitle}>Trip Details</Text>
+                    <TouchableOpacity
+                        style={styles.addGearButton}
+                        onPress={() => router.push({
+                            pathname: `/trips/edit/[id]`, params: { id: id.toString() }
+                        })}
+                    >
+                        <Pencil size={20} color="#2d5016" />
+                    </TouchableOpacity>
+                </View>
 
                 {trip.location && (
                     <View style={styles.detailRow}>
@@ -253,28 +381,11 @@ export default function TripDetailScreen() {
                 )}
             </View>
 
-            {/* Actions */}
+            {/* Delete trip button */}
             <View style={styles.actions}>
-                {trip.status !== 'completed' && (
-                    <TouchableOpacity style={styles.completeButton} onPress={handleCompleteTrip}>
-                        <CheckCircle size={20} color="white" />
-                        <Text style={styles.buttonText}>Complete Trip</Text>
-                    </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                    style={styles.editButton}
-                    onPress={() => router.push({
-                        pathname: `/trips/edit/[id]`, params: { id: id.toString() }
-                    })}
-                >
-                    <Edit size={20} color="white" />
-                    <Text style={styles.buttonText}>Edit</Text>
-                </TouchableOpacity>
-
                 <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
                     <Trash2 size={20} color="white" />
-                    <Text style={styles.buttonText}>Delete</Text>
+                    <Text style={styles.buttonText}>Delete trip</Text>
                 </TouchableOpacity>
             </View>
         </ScrollView>
@@ -302,19 +413,6 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#333',
         marginBottom: 8,
-    },
-    statusBadge: {
-        alignSelf: 'flex-start',
-        backgroundColor: '#3b82f6',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 16,
-    },
-    statusText: {
-        color: 'white',
-        fontSize: 12,
-        fontWeight: '600',
-        textTransform: 'capitalize',
     },
     section: {
         backgroundColor: 'white',
@@ -458,15 +556,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
     },
-    editButton: {
-        flexDirection: 'row',
-        backgroundColor: '#2d5016',
-        padding: 16,
-        borderRadius: 12,
-        justifyContent: 'center',
-        alignItems: 'center',
-        gap: 8,
-    },
     deleteButton: {
         flexDirection: 'row',
         backgroundColor: '#dc2626',
@@ -496,4 +585,37 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: '#2d5016',
     },
+    gearItemRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    deleteGearButton: {
+        padding: 4,
+    },
+    quantityBadge: {
+        fontSize: 11,
+        color: '#666',
+        fontStyle: 'italic',
+    },
+
+    statusSelector: {
+        flexDirection: 'row',
+        gap: 8,
+    },
+    statusOption: {
+        flex: 1,
+        flexDirection: 'row',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 6,
+    },
+    statusOptionText: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
+
 });
