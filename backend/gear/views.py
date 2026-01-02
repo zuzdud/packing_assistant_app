@@ -1,9 +1,14 @@
 from rest_framework import viewsets, status, permissions
-from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.contrib.auth.models import User
 from django.shortcuts import get_object_or_404
+from datetime import datetime
+
+from .services.recommendation_service import recommendation_service
+from .services.weather_service import weather_service
 
 from .models import (
     Category, UserGear, Trip, TripGear,
@@ -16,6 +21,87 @@ from .serializers import (
     TripSerializer, TripListSerializer, TripGearSerializer,
     GearUsageStatsSerializer, GearCatalogSerializer
 )
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def get_weather_forecast(request):
+    """
+    Get weather forecast for a location and date range
+    POST /api/weather-forecast/
+    Body: {
+        "location": "Yosemite National Park, CA",
+        "start_date": "2024-06-15",
+        "end_date": "2024-06-17"
+    }
+    """
+    location = request.data.get('location')
+    start_date_str = request.data.get('start_date')
+    end_date_str = request.data.get('end_date')
+
+    if not all([location, start_date_str, end_date_str]):
+        return Response(
+            {'error': 'location, start_date, and end_date are required'},
+            status=400
+        )
+
+    try:
+        start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+
+        forecast = weather_service.get_weather_forecast(
+            location, start_date, end_date)
+
+        if forecast is None:
+            return Response({
+                'available': False,
+                'message': 'Weather API unavailable or API key not configured'
+            })
+
+        return Response(forecast)
+
+    except ValueError:
+        return Response(
+            {'error': 'Invalid date format. Use YYYY-MM-DD'},
+            status=400
+        )
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=500
+        )
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_trip_recommendations(request, trip_id):
+    """
+    Get gear recommendations for a trip
+    GET /api/trips/{trip_id}/recommendations/
+    """
+    try:
+        trip = Trip.objects.get(id=trip_id, user=request.user)
+    except Trip.DoesNotExist:
+        return Response(
+            {'error': 'Trip not found'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+    try:
+        recommendations = recommendation_service.generate_recommendations(
+            trip, request.user.id
+        )
+        return Response({
+            'trip_id': trip.id,
+            'trip_title': trip.title,
+            'recommendations': recommendations,
+            'total_recommendations': len(recommendations)
+        })
+    except Exception as e:
+        return Response(
+            {'error': str(e)},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
 
 class UserRegistrationView(APIView):
@@ -77,7 +163,7 @@ class UserGearViewSet(viewsets.ModelViewSet):
             gear = self.get_queryset().filter(category_id=category_id)
         else:
             gear = self.get_queryset()
-        
+
         serializer = self.get_serializer(gear, many=True)
         return Response(serializer.data)
 
@@ -100,12 +186,12 @@ class TripViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         # Users can only see their own trips
         queryset = Trip.objects.filter(user=self.request.user)
-        
+
         # Filter by status if provided
         status_filter = self.request.query_params.get('status')
         if status_filter:
             queryset = queryset.filter(status=status_filter)
-        
+
         return queryset
 
     def get_serializer_class(self):
@@ -119,7 +205,7 @@ class TripViewSet(viewsets.ModelViewSet):
         trip = self.get_object()
         gear_id = request.data.get('gear_id')
         quantity = request.data.get('quantity', 1)
-        
+
         try:
             gear = UserGear.objects.get(id=gear_id, user=request.user)
         except UserGear.DoesNotExist:
@@ -151,7 +237,7 @@ class TripViewSet(viewsets.ModelViewSet):
         """Remove gear item from trip"""
         trip = self.get_object()
         gear_id = request.data.get('gear_id')
-        
+
         try:
             trip_gear = TripGear.objects.get(trip=trip, gear_id=gear_id)
             trip_gear.delete()
@@ -167,10 +253,10 @@ class TripViewSet(viewsets.ModelViewSet):
         """Update packed/used status of gear in trip"""
         trip = self.get_object()
         gear_id = request.data.get('gear_id')
-        
+
         try:
             trip_gear = TripGear.objects.get(trip=trip, gear_id=gear_id)
-            
+
             # Update fields if provided
             if 'packed' in request.data:
                 trip_gear.packed = request.data['packed']
@@ -180,9 +266,9 @@ class TripViewSet(viewsets.ModelViewSet):
                 trip_gear.usefulness_rating = request.data['usefulness_rating']
             if 'notes' in request.data:
                 trip_gear.notes = request.data['notes']
-            
+
             trip_gear.save()
-            
+
             serializer = TripGearSerializer(trip_gear)
             return Response(serializer.data)
         except TripGear.DoesNotExist:
@@ -195,16 +281,10 @@ class TripViewSet(viewsets.ModelViewSet):
     def complete_trip(self, request, pk=None):
         """Mark trip as completed and update usage statistics"""
         trip = self.get_object()
-        
-        if trip.status == 'completed':
-            return Response(
-                {'error': 'Trip already completed'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
+
         trip.status = 'completed'
         trip.save()
-        
+
         # Update gear usage statistics
         for trip_gear in trip.gear_items.all():
             stats, created = GearUsageStats.objects.get_or_create(
@@ -216,7 +296,7 @@ class TripViewSet(viewsets.ModelViewSet):
                     'times_not_used': 0
                 }
             )
-            
+
             # Update counters
             if trip_gear.packed:
                 stats.times_packed += 1
@@ -224,36 +304,46 @@ class TripViewSet(viewsets.ModelViewSet):
                     stats.times_used += 1
                 else:
                     stats.times_not_used += 1
-            
+
             # Update activity usage
             if trip.activities:
                 usage_by_activity = stats.usage_by_activity or {}
                 for activity in trip.activities:
-                    usage_by_activity[activity] = usage_by_activity.get(activity, 0) + 1
+                    usage_by_activity[activity] = usage_by_activity.get(
+                        activity, 0) + 1
                 stats.usage_by_activity = usage_by_activity
-            
+
             # Update weather usage
             if trip.expected_weather:
                 usage_by_weather = stats.usage_by_weather or {}
-                usage_by_weather[trip.expected_weather] = usage_by_weather.get(trip.expected_weather, 0) + 1
+                for weather in trip.expected_weather:
+                    if weather not in usage_by_weather:
+                        usage_by_weather[weather] = 0
+                    usage_by_weather[weather] += 1
                 stats.usage_by_weather = usage_by_weather
-            
+
             # Update duration usage
             duration_range = self._get_duration_range(trip.duration_days)
             usage_by_duration = stats.usage_by_duration or {}
-            usage_by_duration[duration_range] = usage_by_duration.get(duration_range, 0) + 1
+            usage_by_duration[duration_range] = usage_by_duration.get(
+                duration_range, 0) + 1
             stats.usage_by_duration = usage_by_duration
-            
+
             # Update average rating
             if trip_gear.usefulness_rating:
-                current_ratings = stats.times_packed
-                current_avg = float(stats.avg_usefulness_rating or 0)
-                new_avg = ((current_avg * (current_ratings - 1)) + trip_gear.usefulness_rating) / current_ratings
-                stats.avg_usefulness_rating = round(new_avg, 2)
-            
+                if stats.times_packed == 0:
+                    # First rating
+                    stats.avg_usefulness_rating = trip_gear.usefulness_rating
+                else:
+                    current_ratings = stats.times_packed
+                    current_avg = float(stats.avg_usefulness_rating or 0)
+                    new_avg = ((current_avg * (current_ratings - 1)) +
+                               trip_gear.usefulness_rating) / current_ratings
+                    stats.avg_usefulness_rating = round(new_avg, 2)
+
             stats.last_used_date = trip.end_date
             stats.save()
-        
+
         serializer = TripSerializer(trip)
         return Response(serializer.data)
 
@@ -281,7 +371,8 @@ class GearCatalogViewSet(viewsets.ReadOnlyModelViewSet):
         activities = request.query_params.getlist('activities')
         if activities:
             # Filter items that match any of the activities
-            queryset = self.queryset.filter(common_activities__overlap=activities)
+            queryset = self.queryset.filter(
+                common_activities__overlap=activities)
             serializer = self.get_serializer(queryset, many=True)
             return Response(serializer.data)
         return Response({'error': 'No activities specified'}, status=status.HTTP_400_BAD_REQUEST)

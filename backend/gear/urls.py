@@ -6,7 +6,7 @@ from .views import (
     UserRegistrationView, CurrentUserView,
     CategoryViewSet, ActivityTypeViewSet,
     UserGearViewSet, TripViewSet,
-    GearCatalogViewSet, GearUsageStatsViewSet
+    GearCatalogViewSet, GearUsageStatsViewSet, get_trip_recommendations, get_weather_forecast
 )
 
 # Create router for viewsets
@@ -24,7 +24,11 @@ urlpatterns = [
     path('auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('auth/me/', CurrentUserView.as_view(), name='current_user'),
-    
+
     # Router URLs
     path('', include(router.urls)),
+
+    path('weather-forecast/', get_weather_forecast, name='weather_forecast'),
+    path('trips/<int:trip_id>/recommendations/',
+         get_trip_recommendations, name='trip_recommendations'),
 ]
