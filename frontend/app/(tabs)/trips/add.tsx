@@ -13,17 +13,62 @@ export default function AddTripScreen() {
         end_date: '',
         expected_temp_min: '',
         expected_temp_max: '',
-        expected_weather: '',
+        expected_weather: [] as string[],
     });
     const [activities, setActivities] = useState<string[]>([]);
 
     const [availableActivities, setAvailableActivities] = useState<ActivityType[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [isFetchingWeather, setIsFetchingWeather] = useState(false);
+    const [weatherFetched, setWeatherFetched] = useState(false);
+
     const router = useRouter();
 
     useEffect(() => {
         loadActivities();
     }, []);
+
+    // Auto-fetch weather when location and dates are complete
+    useEffect(() => {
+        const { location, start_date, end_date } = formData;
+        if (location && start_date && end_date && !weatherFetched) {
+            // Validate date format
+            const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+            if (dateRegex.test(start_date) && dateRegex.test(end_date)) {
+                fetchWeather();
+            }
+        }
+    }, [formData.location, formData.start_date, formData.end_date]);
+
+    const fetchWeather = async () => {
+        setIsFetchingWeather(true);
+        try {
+            const weatherData = await tripService.getWeatherForecast(
+                formData.location,
+                formData.start_date,
+                formData.end_date
+            );
+            console.log("Weather api response", weatherData);
+
+            if (weatherData.available) {
+                setFormData(prev => ({
+                    ...prev,
+                    expected_temp_min: weatherData.temp_min.toString(),
+                    expected_temp_max: weatherData.temp_max.toString(),
+                    expected_weather: weatherData.conditions ?? [],
+                }));
+                setWeatherFetched(true);
+                Alert.alert('Weather Loaded', 'Weather forecast has been automatically loaded for your trip!');
+            } else {
+                Alert.alert('Weather Unavailable', weatherData.message || 'Could not fetch weather data');
+            }
+        } catch (error) {
+            console.error('Weather fetch error:', error);
+            Alert.alert('Weather Error', 'Could not fetch weather data. You can continue without it.');
+        } finally {
+            setIsFetchingWeather(false);
+        }
+    };
 
     const loadActivities = async () => {
         try {
@@ -172,54 +217,52 @@ export default function AddTripScreen() {
                         ))}
                     </View>
 
-                    <Text style={styles.sectionTitle}>Weather Conditions</Text>
+                    <View style={styles.weatherSection}>
+                        <View style={styles.weatherHeader}>
+                            <Text style={styles.sectionTitle}>Weather Conditions</Text>
+                            {isFetchingWeather && (
+                                <View style={styles.fetchingIndicator}>
+                                    <ActivityIndicator size="small" color="#2d5016" />
+                                    <Text style={styles.fetchingText}>Fetching weather...</Text>
+                                </View>
+                            )}
+                            {weatherFetched && !isFetchingWeather && (
+                                <TouchableOpacity onPress={fetchWeather} style={styles.refreshButton}>
+                                    <Text style={styles.refreshText}>🔄 Refresh</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
 
-                    <Text style={styles.label}>Expected Min Temperature (°C)</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={formData.expected_temp_min}
-                        onChangeText={(text) =>
-                            setFormData({ ...formData, expected_temp_min: text })
-                        }
-                        placeholder="e.g., 5"
-                        keyboardType="numeric"
-                    />
+                        {weatherFetched && !isFetchingWeather && (
+                            <View style={styles.weatherInfo}>
+                                <View style={styles.tempRow}>
+                                    <View style={styles.tempItem}>
+                                        <Text style={styles.tempLabel}>Min</Text>
+                                        <Text style={styles.tempValue}>{formData.expected_temp_min}°C</Text>
+                                    </View>
+                                    <View style={styles.tempItem}>
+                                        <Text style={styles.tempLabel}>Max</Text>
+                                        <Text style={styles.tempValue}>{formData.expected_temp_max}°C</Text>
+                                    </View>
+                                </View>
+                                <View style={styles.conditionsRow}>
+                                    <Text style={styles.conditionsLabel}>Expected conditions:</Text>
+                                    <View style={styles.conditionsChips}>
+                                        {formData.expected_weather.map((condition) => (
+                                            <View key={condition} style={styles.conditionChip}>
+                                                <Text style={styles.conditionText}>{condition}</Text>
+                                            </View>
+                                        ))}
+                                    </View>
+                                </View>
+                            </View>
+                        )}
 
-                    <Text style={styles.label}>Expected Max Temperature (°C)</Text>
-                    <TextInput
-                        style={styles.input}
-                        value={formData.expected_temp_max}
-                        onChangeText={(text) =>
-                            setFormData({ ...formData, expected_temp_max: text })
-                        }
-                        placeholder="e.g., 20"
-                        keyboardType="numeric"
-                    />
-
-                    <Text style={styles.label}>Expected Weather</Text>
-                    <View style={styles.weatherOptions}>
-                        {['Sunny', 'Cloudy', 'Rainy', 'Snowy', 'Windy'].map((weather) => (
-                            <TouchableOpacity
-                                key={weather}
-                                style={[
-                                    styles.weatherChip,
-                                    formData.expected_weather === weather && styles.weatherChipActive,
-                                ]}
-                                onPress={() =>
-                                    setFormData({ ...formData, expected_weather: weather })
-                                }
-                            >
-                                <Text
-                                    style={[
-                                        styles.weatherText,
-                                        formData.expected_weather === weather &&
-                                        styles.weatherTextActive,
-                                    ]}
-                                >
-                                    {weather}
-                                </Text>
-                            </TouchableOpacity>
-                        ))}
+                        {!weatherFetched && !isFetchingWeather && (
+                            <Text style={styles.weatherHint}>
+                                💡 Enter location and dates to automatically fetch weather forecast
+                            </Text>
+                        )}
                     </View>
                 </View>
 
@@ -378,5 +421,99 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: 'white',
+    },
+    weatherSection: {
+        marginTop: 8,
+    },
+    weatherHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+    },
+    fetchingIndicator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+    },
+    fetchingText: {
+        fontSize: 14,
+        color: '#2d5016',
+        fontStyle: 'italic',
+    },
+    refreshButton: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 12,
+        backgroundColor: '#e8f5e9',
+    },
+    refreshText: {
+        fontSize: 14,
+        color: '#2d5016',
+        fontWeight: '600',
+    },
+    weatherInfo: {
+        backgroundColor: 'white',
+        borderRadius: 12,
+        padding: 16,
+        marginTop: 12,
+        borderWidth: 1,
+        borderColor: '#ddd',
+    },
+    tempRow: {
+        flexDirection: 'row',
+        gap: 16,
+        marginBottom: 16,
+    },
+    tempItem: {
+        flex: 1,
+        alignItems: 'center',
+        backgroundColor: '#f0f9ff',
+        padding: 12,
+        borderRadius: 8,
+    },
+    tempLabel: {
+        fontSize: 12,
+        color: '#666',
+        marginBottom: 4,
+    },
+    tempValue: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#3b82f6',
+    },
+    conditionsRow: {
+        gap: 8,
+    },
+    conditionsLabel: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 8,
+    },
+    conditionsChips: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    conditionChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 16,
+        backgroundColor: '#3b82f6',
+    },
+    conditionText: {
+        fontSize: 13,
+        color: 'white',
+        fontWeight: '600',
+    },
+    weatherHint: {
+        fontSize: 14,
+        color: '#666',
+        fontStyle: 'italic',
+        marginTop: 8,
+        backgroundColor: '#fff9e6',
+        padding: 12,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#ffd666',
     },
 });

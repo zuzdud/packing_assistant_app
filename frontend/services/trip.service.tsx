@@ -18,7 +18,7 @@ export interface Trip {
     activities: string[];
     expected_temp_min: number | null;
     expected_temp_max: number | null;
-    expected_weather: string;
+    expected_weather: string[];
     status: 'planned' | 'in_progress' | 'completed';
     gear_items: TripGear[];
     gear_count: number;
@@ -52,11 +52,39 @@ export interface CreateTripData {
     activities?: string[];
     expected_temp_min?: number;
     expected_temp_max?: number;
-    expected_weather?: string;
+    expected_weather: string[];
     status?: 'planned' | 'in_progress' | 'completed';
 }
 
+export interface WeatherForecast {
+    available: boolean;
+    temp_min: number;
+    temp_max: number;
+    conditions?: string[];
+    message?: string;
+    forecast_details?: Array<{
+        date: string;
+        temp: number;
+        condition: string;
+        description: string;
+    }>;
+}
+
 class TripService {
+
+    async getWeatherForecast(
+        location: string,
+        startDate: string,
+        endDate: string
+    ): Promise<WeatherForecast> {
+        const response = await api.post('/weather-forecast/', {
+            location,
+            start_date: startDate,
+            end_date: endDate,
+        });
+        return response.data;
+    }
+
     async addGearToTrip(tripId: number, gearId: number, quantity: number = 1): Promise<TripGear> {
         const response = await api.post(`/trips/${tripId}/add_gear/`, {
             gear_id: gearId,
