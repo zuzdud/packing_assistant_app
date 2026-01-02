@@ -56,7 +56,7 @@ export default function ProfileScreen() {
 
                 <TouchableOpacity style={styles.menuItem}>
                     <Info size={20} color="#666" />
-                    <Text style={styles.menuItemText}>About Pack Smart</Text>
+                    <Text style={styles.menuItemText}>About Packing Assistant</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.menuItem}>

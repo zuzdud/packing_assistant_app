@@ -62,8 +62,6 @@ export default function RegisterScreen() {
         >
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <Text style={styles.title}>Create Account</Text>
-                <Text style={styles.subtitle}>Join Pack Smart</Text>
-
                 <View style={styles.form}>
                     <TextInput
                         style={styles.input}

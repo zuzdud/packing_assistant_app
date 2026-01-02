@@ -45,8 +45,7 @@ export default function LoginScreen() {
             style={styles.container}
         >
             <View style={styles.content}>
-                <Text style={styles.title}>Pack Smart</Text>
-                <Text style={styles.subtitle}>Your Outdoor Packing Assistant</Text>
+                <Text style={styles.title}>Log In</Text>
 
                 <View style={styles.form}>
                     <TextInput
@@ -105,7 +104,7 @@ const styles = StyleSheet.create({
         fontSize: 32,
         fontWeight: 'bold',
         textAlign: 'center',
-        marginBottom: 8,
+        marginBottom: 30,
         color: '#2d5016',
     },
     subtitle: {
