@@ -1,4 +1,4 @@
-{
+export default {
   "expo": {
     "name": "frontend",
     "slug": "frontend",
@@ -43,6 +43,9 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    extra: {
+      apiBaseUrl: process.env.API_BASE_URL || 'http://localhost:8000/api',
     }
   }
 }
