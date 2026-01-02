@@ -31,7 +31,8 @@ export default function TripDetailScreen() {
     const { id } = useLocalSearchParams();
     const [trip, setTrip] = useState<Trip | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [showUsedColumn, setShowUsedColumn] = useState(false);
+    const [checksDisabled, setChecksDisabled] = useState(false);
+    const [usedVisible, setUsedVisible] = useState(false);
     const router = useRouter();
 
     const handleNavigation = () => {
@@ -46,7 +47,8 @@ export default function TripDetailScreen() {
         try {
             const data = await tripService.getTrip(Number(id));
             setTrip(data);
-            setShowUsedColumn(data.status === 'in_progress');
+            setUsedVisible(data.status === "completed" || data.status === "in_progress");
+            setChecksDisabled(data.status === "completed");
         } catch (error) {
             Alert.alert('Error', 'Failed to load trip details');
             router.back();
@@ -89,7 +91,7 @@ export default function TripDetailScreen() {
                     onPress: async () => {
                         try {
                             await tripService.removeGearFromTrip(Number(id), gearId);
-                            loadTripDetail();
+                            await loadTripDetail();
                         } catch (error) {
                             Alert.alert('Error', 'Failed to remove gear');
                         }
@@ -103,7 +105,6 @@ export default function TripDetailScreen() {
         if (!trip) return;
 
         if (newStatus === 'in_progress') {
-            setShowUsedColumn(true);
             Alert.alert(
                 'Mark in progress',
                 'You will now be able to mark items as used. After completing trip, usage stats will be updated to improve future recommendations.',
@@ -111,11 +112,14 @@ export default function TripDetailScreen() {
                     {
                         text: 'OK',
                         onPress: async () => {
+                            setIsLoading(true);
                             try {
                                 await tripService.updateTrip(Number(id), { status: newStatus } as any);
-                                loadTripDetail();
+                                await loadTripDetail();
                             } catch (error) {
                                 Alert.alert('Error', 'Failed to update trip status');
+                            } finally {
+                                setIsLoading(false);
                             }
                         },
                     },
@@ -126,7 +130,6 @@ export default function TripDetailScreen() {
         }
 
         if (newStatus === 'completed') {
-            setShowUsedColumn(true);
             Alert.alert(
                 'Complete trip',
                 'Your usage stats will be updated to improve future recommendations.',
@@ -134,11 +137,14 @@ export default function TripDetailScreen() {
                     {
                         text: 'OK',
                         onPress: async () => {
+                            setIsLoading(true);
                             try {
                                 await tripService.completeTrip(Number(id));
-                                loadTripDetail();
+                                await loadTripDetail();
                             } catch (error) {
                                 Alert.alert('Error', 'Failed to update trip status');
+                            } finally {
+                                setIsLoading(false);
                             }
                         },
                     },
@@ -150,7 +156,7 @@ export default function TripDetailScreen() {
 
         try {
             await tripService.updateTrip(Number(id), { status: newStatus } as any);
-            loadTripDetail();
+            await loadTripDetail();
         } catch (error) {
             Alert.alert('Error', 'Failed to update trip status');
         }
@@ -188,18 +194,8 @@ export default function TripDetailScreen() {
     };
 
     const renderGearItem = (item: TripGear) => (
-        <View key={item.id} style={styles.gearItem}>
-            <TouchableOpacity
-                key={item.id}
-                style={styles.gearItemLeft}
-                onPress={() => togglePacked(item.gear, item.packed)}
-            >
-
-                {item.packed ? (
-                    <CheckCircle size={24} color="#10b981" />
-                ) : (
-                    <Circle size={24} color="#ccc" />
-                )}
+        <View key={item.gear} style={styles.gearItem}>
+            <View style={styles.gearItemLeft}>
                 {item.gear_photo ? (
                     <Image source={{ uri: item.gear_photo }} style={styles.gearThumbnail} />
                 ) : (
@@ -214,17 +210,28 @@ export default function TripDetailScreen() {
                         <Text style={styles.quantityBadge}>Qty: {item.quantity}</Text>
                     )}
                 </View>
-            </TouchableOpacity>
+            </View>
 
             <View style={styles.gearItemRight}>
                 {item.gear_weight && (
                     <Text style={styles.gearWeight}>{item.gear_weight}g</Text>
                 )}
 
-                {showUsedColumn && (
-                    <TouchableOpacity
+                <TouchableOpacity
+                    onPress={() => togglePacked(item.gear, item.packed)}
+                    disabled={checksDisabled}
+                >
+                    {item.packed ? (
+                        <CheckCircle size={24} color="#10b981" />
+                    ) : (
+                        <Circle size={24} color="#ccc" />
+                    )}
+                </TouchableOpacity>
 
+                {usedVisible && (
+                    <TouchableOpacity
                         onPress={() => toggleUsed(item.gear, item.used)}
+                        disabled={checksDisabled}
                     >
                         {item.used ? (
                             <CheckCircle size={20} color="#10b981" />
@@ -377,7 +384,14 @@ export default function TripDetailScreen() {
                             </Text>
                         )}
                         {trip.expected_weather && (
-                            <Text style={styles.detailText}>Weather: {trip.expected_weather}</Text>
+                            <View>
+                                <Text style={styles.detailText}>Weather:</Text>
+                                {trip.expected_weather.map((condition, index) => (
+                                    <Text key={index} style={styles.detailText}>
+                                        • {condition}
+                                    </Text>
+                                ))}
+                            </View>
                         )}
                     </View>
                 )}
@@ -422,6 +436,24 @@ export default function TripDetailScreen() {
                         <Plus size={20} color="#2d5016" />
                     </TouchableOpacity>
                 </View>
+
+                {trip.gear_items.length > 0 && (
+                    <View style={styles.checkboxLegend}>
+                        <View style={styles.legendItem}>
+                            <Text style={styles.legendText}>| Delete</Text>
+                        </View>
+                        {usedVisible && (
+                            <View style={styles.legendItem}>
+                                <Text style={styles.legendText}>| Used</Text>
+                            </View>
+                        )}
+                        
+                        <View style={styles.legendItem}>
+                            <Text style={styles.legendText}>Packed</Text>
+                        </View>
+                        
+                    </View>
+                )}
 
                 {trip.gear_items.length === 0 ? (
                     <Text style={styles.emptyText}>No gear added yet</Text>
@@ -624,9 +656,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: '#fef3c7',
-        padding: 16,
+        padding: 12,
         borderRadius: 12,
-        marginBottom: 16,
+        marginBottom: 0,
+        marginTop:20,
         gap: 8,
     },
     recommendationsButtonText: {
@@ -665,6 +698,24 @@ const styles = StyleSheet.create({
     statusOptionText: {
         fontSize: 13,
         fontWeight: '600',
+    },
+
+    checkboxLegend: {
+        flexDirection: 'row-reverse',
+        alignItems: 'center',
+        backgroundColor: '#f9f9f9',
+        padding: 12,
+        borderRadius: 8,
+        marginBottom: 12,
+        gap: 3,
+    },
+    legendItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    legendText: {
+        fontSize: 12,
+        color: '#666',
     },
 
 });
